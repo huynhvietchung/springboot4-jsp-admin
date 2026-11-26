@@ -31,7 +31,9 @@
                 <c:choose>
                     <c:when test="${sessionScope.currentUser != null}">
                         <li class="nav-item d-flex align-items-center me-3 text-white">
-                            Xin chào, <strong class="ms-1">${sessionScope.currentUser.fullname != null ? sessionScope.currentUser.fullname : sessionScope.currentUser.username}</strong>
+                            <a class="nav-link text-white p-0" href="<c:url value='/profile'/>">
+                                Xin chào, <strong>${sessionScope.currentUser.fullname != null ? sessionScope.currentUser.fullname : sessionScope.currentUser.username}</strong>
+                            </a>
                         </li>
                         <li class="nav-item">
                             <a class="btn btn-outline-light btn-sm" href="<c:url value='/logout'/>">Đăng xuất</a>
