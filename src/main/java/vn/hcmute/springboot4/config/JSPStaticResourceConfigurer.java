@@ -7,8 +7,10 @@ import org.apache.catalina.LifecycleListener;
 import org.apache.catalina.WebResourceRoot;
 import org.springframework.util.ResourceUtils;
 
+import java.io.File;
 import java.net.URI;
 import java.net.URL;
+import java.util.jar.JarFile;
 
 public class JSPStaticResourceConfigurer implements LifecycleListener {
 
@@ -26,12 +28,36 @@ public class JSPStaticResourceConfigurer implements LifecycleListener {
         }
 
         final URL finalLocation = getUrl();
+        if (!hasMetaInfResources(finalLocation)) {
+            return;
+        }
         this.context.getResources().createWebResourceSet(
                 WebResourceRoot.ResourceSetType.RESOURCE_JAR,
                 "/",
                 finalLocation,
                 subPath
         );
+    }
+
+    private boolean hasMetaInfResources(URL location) {
+        try {
+            if (ResourceUtils.isFileURL(location)) {
+                return new File(location.toURI()).toPath().resolve("META-INF/resources").toFile().exists();
+            }
+            if ("jar".equals(location.getProtocol())) {
+                String path = location.getPath();
+                if (path.startsWith("file:")) {
+                    path = path.substring("file:".length());
+                }
+                int bangIndex = path.indexOf("!/");
+                String archivePath = bangIndex > 0 ? path.substring(0, bangIndex) : path;
+                try (JarFile jar = new JarFile(archivePath)) {
+                    return jar.getEntry("META-INF/resources/") != null;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
     }
 
     private URL getUrl() {
@@ -46,7 +72,7 @@ public class JSPStaticResourceConfigurer implements LifecycleListener {
                 // -> jar:file:/home/myfiles/Projects/myproj/myjar.jar!/
                 String locationStr = location.getPath()
                         .replaceFirst("^nested:", "")
-                        .replaceFirst("/!BOOT-INF/classes/!/$", "!/");
+                        .replaceFirst("/!(BOOT-INF|WEB-INF)/classes/!/$", "!/");
 
                 return new URI("jar:file", locationStr, null).toURL();
             } catch (Exception e) {
